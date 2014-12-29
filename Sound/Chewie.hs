@@ -3,7 +3,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 
-module Audio.Chewie(Chewie, Time,
+module Sound.Chewie(Chewie, Time,
                     integrate, integrateFrom,
                     evaluate) where
 
@@ -14,8 +14,8 @@ import Data.Monoid
 
 import Control.Monad.Reader.Class
 
-import Audio.Chewie.Time
-import Audio.Chewie.Evaluator
+import Sound.Chewie.Time
+import Sound.Chewie.Evaluator
 
 data Chewie a where
   CTime :: (Time -> a) -> Chewie a

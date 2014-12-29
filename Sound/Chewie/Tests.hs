@@ -1,12 +1,12 @@
-module Audio.Chewie.Tests(spec) where
+module Sound.Chewie.Tests(spec) where
 
 import Test.Hspec
 import Test.Hspec.QuickCheck
 
 import Control.Applicative(pure)
 
-import Audio.Chewie
-import Audio.Chewie.Evaluator
+import Sound.Chewie
+import Sound.Chewie.Evaluator
 
 import Test.QuickCheck
 import Test.QuickCheck.Function

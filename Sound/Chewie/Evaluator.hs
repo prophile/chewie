@@ -1,12 +1,12 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DeriveFunctor #-}
 
-module Audio.Chewie.Evaluator(Evaluator,
+module Sound.Chewie.Evaluator(Evaluator,
                               evalIntegrate, evalConvolve,
                               trapezeIntegrate,
                               defaultEvaluator) where
 
-import Audio.Chewie.Time
+import Sound.Chewie.Time
 import Data.Ratio
 
 data Evaluator = Evaluator {

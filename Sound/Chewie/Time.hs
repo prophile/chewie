@@ -1,4 +1,4 @@
-module Audio.Chewie.Time(Time) where
+module Sound.Chewie.Time(Time) where
 
 import Data.Ratio
 
