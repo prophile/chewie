@@ -2,14 +2,16 @@
 
 module Audio.Chewie(Chewie, Time,
                     getTime,
-                    integrate, integrateFrom) where
+                    integrate, integrateFrom,
+                    evaluate) where
 
 import Data.Ratio
 import Control.Applicative
 import Control.Monad
 import Data.Monoid
 
-type Time = Rational
+import Audio.Chewie.Time
+import Audio.Chewie.Evaluator
 
 data Chewie a where
   CTime :: (Time -> a) -> Chewie a
@@ -81,4 +83,18 @@ integrateFrom t0 s = CIntegrate t0 s id
 integrate :: (Fractional a) => Chewie a -> Chewie a
 integrate = integrateFrom 0
 {-# INLINE integrate #-}
+
+evaluate :: Evaluator -> Chewie a -> Time -> a
+evaluate ev = sample
+  where sample :: Chewie b -> Time -> b
+        sample (CTime f) = f
+        sample (CConst k) = const k
+        sample (CJoin s) = \t -> sample (sample s t) t
+        sample (CAp f x) = \t -> (sample f t) (sample x t)
+        sample (CIntegrate t0 s f) = \t -> f (eInt t0 t (sample s))
+        sample (CConvolve l r f) = \t -> f (eConv (sample l) (sample r) t)
+        eInt :: Fractional n => Time -> Time -> (Time -> n) -> n
+        eInt = evalIntegrate ev
+        eConv :: Fractional n => (Time -> n) -> (Time -> n) -> Time -> n
+        eConv = evalConvolve ev
 
