@@ -106,10 +106,12 @@ evaluate ev = sample
         sample (CJoin s) = \t -> sample (sample s t) t
         sample (CAp f x) = \t -> (sample f t) (sample x t)
         sample (CIntegrate t0 s f) = \t -> f (eInt t0 t (sample s))
-        sample (CConvolve l r f) = \t -> f (eConv (sample l) (sample r) t)
+        sample (CConvolve l r f) = f . eConv (sample l) (sample r)
         eInt :: Fractional n => Time -> Time -> (Time -> n) -> n
         eInt t0 t1 | t0 <= t1  = evalIntegrate ev t0 t1
         eInt t0 t1 | otherwise = negate . evalIntegrate ev t1 t0
-        eConv :: Fractional n => (Time -> n) -> (Time -> n) -> Time -> n
-        eConv = evalConvolve ev
+        (convBoundL, convBoundR) = evalConvolutionBounds ev
+        eConv :: (Fractional n) => (Time -> n) -> (Time -> n) -> Time -> n
+        eConv l r t = eInt (t - convBoundL) (t + convBoundR) query
+          where query tau = (l tau) * (r (t - tau))
 

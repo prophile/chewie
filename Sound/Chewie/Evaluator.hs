@@ -1,8 +1,8 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE DeriveFunctor #-}
 
-module Sound.Chewie.Evaluator(Evaluator,
-                              evalIntegrate, evalConvolve,
+module Sound.Chewie.Evaluator(Evaluator(Evaluator),
+                              evalIntegrate, evalConvolutionBounds,
                               trapezeIntegrate,
                               defaultEvaluator) where
 
@@ -11,7 +11,7 @@ import Data.Ratio
 
 data Evaluator = Evaluator {
   evalIntegrate :: forall n. Fractional n => Time -> Time -> (Time -> n) -> n,
-  evalConvolve :: forall n. Fractional n => (Time -> n) -> (Time -> n) -> Time -> n
+  evalConvolutionBounds :: (Time, Time)
 }
 
 data TrapezePoint n = TrapezeEnd n
@@ -37,10 +37,7 @@ trapezeIntegrate dt t0 t1 f = total samples
         total (Trapeze x d y) = total y + (fromRational (d / 2))*(x + getSample y)
         total (TrapezeEnd _) = 0
 
-blatantLiesConvolution :: Fractional n => (Time -> n) -> (Time -> n) -> Time -> n
-blatantLiesConvolution f s = let k = s 0 in \t -> k * f t
-
 defaultEvaluator :: Integer -> Evaluator
 defaultEvaluator hz = Evaluator { evalIntegrate = trapezeIntegrate (1 % hz),
-                                  evalConvolve  = blatantLiesConvolution }
+                                  evalConvolutionBounds = (-7, 7) }
 
