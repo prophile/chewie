@@ -1,6 +1,9 @@
 module Main where
 
+import Test.Hspec
+
+import Audio.Chewie.Tests(spec)
+
 main :: IO ()
-main = do
-  putStrLn "Hello, world!"
+main = hspec spec
 
