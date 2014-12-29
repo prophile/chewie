@@ -1,7 +1,9 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Audio.Chewie(Chewie, Time,
-                    getTime,
                     integrate, integrateFrom,
                     evaluate) where
 
@@ -9,6 +11,8 @@ import Data.Ratio
 import Control.Applicative
 import Control.Monad
 import Data.Monoid
+
+import Control.Monad.Reader.Class
 
 import Audio.Chewie.Time
 import Audio.Chewie.Evaluator
@@ -19,6 +23,7 @@ data Chewie a where
   CConvolve :: (Fractional b) => Chewie b -> Chewie b -> (b -> a) -> Chewie a
   CAp :: Chewie (a -> b) -> Chewie a -> Chewie b
   CJoin :: Chewie (Chewie a) -> Chewie a
+  CTT :: (Time -> Time) -> Chewie a -> Chewie a
   CConst :: a -> Chewie a
 
 instance Functor Chewie where
@@ -43,6 +48,14 @@ instance Monad Chewie where
   x >>= f = joinChewie (fmap f x)
     where joinChewie (CConst k) = k
           joinChewie x = CJoin x
+
+instance MonadReader Time Chewie where
+  reader = CTime
+  {-# INLINE reader #-}
+  local f x@(CConst _) = x
+  local f (CTime g) = CTime (g . f)
+  local f x = CTT f x
+  {-# INLINE local #-}
 
 delta :: (Num a) => Time -> a
 delta 0 = 1
@@ -72,10 +85,6 @@ instance (Num a) => Num (Chewie a) where
   fromInteger = pure . fromInteger
   {-# INLINE fromInteger #-}
 
-getTime :: Chewie Time
-getTime = CTime id
-{-# INLINE getTime #-}
-
 integrateFrom :: (Fractional a) => Time -> Chewie a -> Chewie a
 integrateFrom t0 s = CIntegrate t0 s id
 {-# INLINE integrateFrom #-}
@@ -93,6 +102,7 @@ evaluate ev = sample
         sample (CAp f x) = \t -> (sample f t) (sample x t)
         sample (CIntegrate t0 s f) = \t -> f (eInt t0 t (sample s))
         sample (CConvolve l r f) = \t -> f (eConv (sample l) (sample r) t)
+        sample (CTT f x) = \t -> sample x (f t)
         eInt :: Fractional n => Time -> Time -> (Time -> n) -> n
         eInt = evalIntegrate ev
         eConv :: Fractional n => (Time -> n) -> (Time -> n) -> Time -> n
