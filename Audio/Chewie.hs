@@ -23,7 +23,6 @@ data Chewie a where
   CConvolve :: (Fractional b) => Chewie b -> Chewie b -> (b -> a) -> Chewie a
   CAp :: Chewie (a -> b) -> Chewie a -> Chewie b
   CJoin :: Chewie (Chewie a) -> Chewie a
-  CTT :: (Time -> Time) -> Chewie a -> Chewie a
   CConst :: a -> Chewie a
 
 instance Functor Chewie where
@@ -52,9 +51,15 @@ instance Monad Chewie where
 instance MonadReader Time Chewie where
   reader = CTime
   {-# INLINE reader #-}
-  local f x@(CConst _) = x
-  local f (CTime g) = CTime (g . f)
-  local f x = CTT f x
+  local f = descend
+    where
+      descend :: Chewie a -> Chewie a
+      descend x@(CConst _) = x
+      descend (CTime g) = CTime (g . f)
+      descend (CJoin x) = CJoin (descend x)
+      descend (CAp g x) = CAp (descend g) (descend x)
+      descend (CConvolve l r g) = CConvolve (descend l) (descend r) g
+      descend (CIntegrate t0 s g) = CIntegrate (f t0) (descend s) g
   {-# INLINE local #-}
 
 delta :: (Num a) => Time -> a
@@ -102,9 +107,9 @@ evaluate ev = sample
         sample (CAp f x) = \t -> (sample f t) (sample x t)
         sample (CIntegrate t0 s f) = \t -> f (eInt t0 t (sample s))
         sample (CConvolve l r f) = \t -> f (eConv (sample l) (sample r) t)
-        sample (CTT f x) = \t -> sample x (f t)
         eInt :: Fractional n => Time -> Time -> (Time -> n) -> n
-        eInt = evalIntegrate ev
+        eInt t0 t1 | t0 <= t1  = evalIntegrate ev t0 t1
+        eInt t0 t1 | otherwise = negate . evalIntegrate ev t1 t0
         eConv :: Fractional n => (Time -> n) -> (Time -> n) -> Time -> n
         eConv = evalConvolve ev
 
